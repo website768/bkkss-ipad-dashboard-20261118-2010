@@ -147,6 +147,7 @@ let currentCalDay = null;
 let bookingData = {};
 let filterDate = null;
 let saveTimer = null;
+let daysWithScans = [];
 
 async function loadNotes() {
   try {
@@ -289,9 +290,11 @@ function setMode(mode) {
   loadScan();
 }
 
+function initDaysWithScans() {
+  daysWithScans = [...new Set(scanLabels.map(l => l.slice(0,5)))].sort();
+}
+
 function nextCalDay() {
-  if (!scanLabels.length) return;
-  const daysWithScans = [...new Set(scanLabels.map(l => l.slice(0,5)))].sort();
   if (!daysWithScans.length) return;
   if (currentCalDay === null) currentCalDay = 0;
   else currentCalDay = (currentCalDay + 1) % daysWithScans.length;
@@ -375,7 +378,6 @@ function renderCalendar() {
   const startDay = first.getDay();
   const daysInMonth = new Date(year, month+1, 0).getDate();
   const todayStr = new Date().toISOString().slice(0,10);
-  const daysWithScans = [...new Set(scanLabels.map(l => l.slice(0,5)))].sort();
   for (let i = 0; i < startDay; i++) grid.innerHTML += '<div></div>';
   for (let d = 1; d <= daysInMonth; d++) {
     const ds = year + '-' + String(month+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
@@ -392,8 +394,18 @@ function renderCalendar() {
     else if (ev.includes('測驗') || ev.includes('考試') || ev.includes('模擬')) cls += ' exam';
     else if (ev) cls += ' event';
     const scansOnDay = scanLabels.filter(l => l.startsWith(prefix));
-    grid.innerHTML += `<div class="${cls}" onclick="showDayBooking('${displayDate}')"><div class="num">${d}</div><div class="ev">${ev}</div><div style="font-size:0.65em;color:#888">${scansOnDay.length} scans</div></div>`;
+    grid.innerHTML += `<div class="${cls}" onclick="showDayOnDashboard('${prefix}')"><div class="num">${d}</div><div class="ev">${ev}</div><div style="font-size:0.65em;color:#888">${scansOnDay.length} scans</div></div>`;
   }
+}
+
+function showDayOnDashboard(prefix) {
+  const dayScans = scanLabels.filter(l => l.startsWith(prefix));
+  if (dayScans.length) {
+    document.getElementById('scanSelect').value = dayScans[0];
+    loadScan();
+  }
+  showTab('dash');
+  document.getElementById('calStatus').textContent = 'Linked to Dashboard: ' + prefix;
 }
 
 function showDayBooking(displayDate) {
@@ -513,6 +525,7 @@ scanLabels.forEach(l => {
 (async () => {
   await loadNotes();
   checkToken();
+  initDaysWithScans();
   setMode('offline');
 })();
 </script></body></html>
